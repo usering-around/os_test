@@ -1,0 +1,7 @@
+{
+    "rust-analyzer.cargo.target": "target_x86_64.json",
+    "rust-analyzer.check.targets": null,
+    "rust-analyzer.cargo.features": [
+        "smp",
+    ]
+}

@@ -1,0 +1,10 @@
+[unstable]
+build-std-features = ["compiler-builtins-mem"]
+build-std = ["core", "compiler_builtins", "alloc"]
+
+[build]
+target = "target_x86_64.json"
+rustflags = ['-Clink-arg=-Tlinker_x86_64.ld']
+
+[target.'cfg(all(target_os = "none"))']
+runner = "python pass_var_to_make.py qemu"

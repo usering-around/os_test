@@ -1,0 +1,32 @@
+[package]
+name = "os_test"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+acpi = "5.2.0"
+bitflags = "2.9.1"
+limine = "0.4.0"
+spin = "0.10.0"
+
+[profile.test]
+panic = "unwind"
+
+[profile.dev]
+panic = "abort"
+
+[profile.release]
+panic = "abort"
+
+[profile.superopt]
+inherits = "release"
+lto = "fat"
+codegen-units = 1
+
+[[bin]]
+name = "os_test"
+test = false
+bench = false
+
+[features]
+smp = []
