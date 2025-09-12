@@ -1,7 +1,6 @@
-use alloc::vec::Vec;
-
 use super::path::Path;
 use crate::{alloc::boxed::Box, fs::path::PathBuf};
+use alloc::vec::Vec;
 use spin::RwLock;
 pub type Result<T> = core::result::Result<T, VfsError>;
 
