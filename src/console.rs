@@ -86,7 +86,7 @@ impl Console {
     /// Draw a single ascii character to the console
     // TODO: perhaps make the font and the related constants fields of the Console to generalize to more fonts?
     fn draw_char(&mut self, c: u8, x: usize, mut y: usize, fg_color: Color, bg_color: Color) {
-        let font_bytes = include_bytes!("/home/makeitrain/Downloads/AIXOID9.F16");
+        let font_bytes = include_bytes!("../AIXOID9.F16");
         let mut pos = (c as usize) * CHAR_HEIGHT;
         for _ in 0..CHAR_HEIGHT {
             let display_byte = font_bytes[pos];
