@@ -325,7 +325,7 @@ mod test {
             Err(VfsError::DirectoryDoesNotExist)
         );
         assert_eq!(
-            ramfs.create_dir(Path::new("/doesnotexist/testing")),
+            ramfs.create_dir(Path::new("/doesnotexist/testingg")),
             Err(VfsError::DirectoryDoesNotExist)
         );
     }
