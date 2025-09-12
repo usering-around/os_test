@@ -52,14 +52,16 @@ mod test {
 
     #[test_case]
     fn basic_alloc() {
-        let mut vec = vec!["hello", "wassup", "bitch"];
+        let mut vec = vec!["hello", "wassup", "hi"];
 
         vec.push("value");
         vec.push("value");
         vec[0] = "test";
         vec[4] = "test";
         drop(vec);
-        let ok = Box::new(str::from_utf8("what is up guyz this is my string".as_bytes()).unwrap());
+        let ok = Box::new(
+            str::from_utf8("this is my string, random characters blah blah".as_bytes()).unwrap(),
+        );
         ok.chars().find(|&c| c == 'z');
         drop(ok);
     }
