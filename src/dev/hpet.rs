@@ -10,7 +10,7 @@ use crate::{
 };
 
 const GENERAL_CAPABILITIES_REGISTER: u64 = 0;
-const GENERAL_CONFIGURATION_REGISTER: u64 = 0x20;
+const GENERAL_CONFIGURATION_REGISTER: u64 = 0x10;
 const MAIN_COUNTER_VAL_REGISTER: u64 = 0xf0;
 /// enable legacy replacement mapping
 const LEG_RT_CNF: u64 = 0b10;
@@ -39,12 +39,16 @@ impl Hpet {
         }
     }
 
-    /// get the rate at which 1 tick is sent by the hpet timer
-    pub fn tick_rate_ns() -> u64 {
-        let tick_per_femo = unsafe { Self::read(GENERAL_CAPABILITIES_REGISTER) >> 32 };
-        assert!(tick_per_femo <= 0x05F5E100);
-        let tick_per_nano_seconds = tick_per_femo / 10_u64.pow(6);
-        tick_per_nano_seconds
+    /// get the amount of femto seconds (10e-15) which pass per single tick
+    pub fn fs_per_tick() -> u64 {
+        let fs_per_tick = unsafe { Self::read(GENERAL_CAPABILITIES_REGISTER) >> 32 };
+        assert!(fs_per_tick <= 0x05F5E100);
+        fs_per_tick
+    }
+    /// get the amount of ticks per 1 miliseconds
+    // ms is chosen since the resolution is at least 100ns, which gives us 10e-7 margin of error with division rounding worst case scenario
+    pub fn tick_rate_ms() -> u64 {
+        10_u64.pow(12) / Self::fs_per_tick()
     }
 
     pub fn num_timers() -> u64 {
@@ -170,7 +174,7 @@ impl Timer {
     pub fn enable(&self) {
         unsafe {
             let old = Hpet::read(self.general_capabilties_reg_num());
-            let new = old | 0b10;
+            let new = old | 0b100;
             Hpet::write(self.general_capabilties_reg_num(), new);
         }
     }
@@ -178,7 +182,7 @@ impl Timer {
     pub fn disable(&self) {
         unsafe {
             let old = Hpet::read(self.general_capabilties_reg_num());
-            let new = old & !0b10;
+            let new = old & !0b100;
             Hpet::write(self.general_capabilties_reg_num(), new);
         }
     }
