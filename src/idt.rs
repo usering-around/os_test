@@ -13,12 +13,12 @@ type TrapHandlerFn = unsafe extern "C" fn() -> !;
 macro_rules! interrupt_handler_fn {
     (|| $func: block) => {{
         use core::arch::naked_asm;
-        #[naked]
+        #[unsafe(naked)]
         extern "C" fn wrapper() -> ! {
             extern "C" fn ignore() {
                 $func
             }
-            unsafe {
+
                 // and call the C function
                 naked_asm!(
 
@@ -54,7 +54,7 @@ macro_rules! interrupt_handler_fn {
                     iretq;",
                     sym ignore
                 )
-            }
+
         }
         wrapper
     }};
@@ -70,12 +70,11 @@ macro_rules! interrupt_handler_fn {
 macro_rules! trap_handler_fn {
     (|| $func: block) => {{
         use core::arch::naked_asm;
-        #[naked]
+        #[unsafe(naked)]
         extern "C" fn wrapper() -> ! {
             extern "C" fn ignore() -> ! {
                 $func
             }
-            unsafe {
                 // and call the C function
                 naked_asm!(
 
@@ -99,7 +98,7 @@ macro_rules! trap_handler_fn {
                     call {};",
                     sym ignore
                 )
-            }
+
         }
         wrapper
     }};
@@ -137,12 +136,12 @@ macro_rules! insert_trap {
 macro_rules! trap_handler_fn_with_error {
     (|$num: ident| $func: block) => {{
         use core::arch::naked_asm;
-        #[naked]
+        #[unsafe(naked)]
         extern "C" fn wrapper() -> ! {
             extern "C" fn ignore($num: u64) -> ! {
                 $func
             }
-            unsafe {
+
                 // and call the C function
                 naked_asm!(
 
@@ -166,7 +165,7 @@ macro_rules! trap_handler_fn_with_error {
                     call {};",
                     sym ignore
                 )
-            }
+
         }
         wrapper
     }};

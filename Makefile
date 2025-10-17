@@ -30,6 +30,7 @@ $(IMAGE_NAME).iso: limine/limine $(BIN_PATH)
 		-efi-boot-part --efi-boot-image --protective-msdos-label \
 		iso_root -o $(IMAGE_NAME).iso
 	./limine/limine bios-install $(IMAGE_NAME).iso
+	
 	rm -rf iso_root
 
 
@@ -38,6 +39,8 @@ qemu: $(IMAGE_NAME).iso ovmf/ovmf-code.fd ovmf/ovmf-vars.fd $(BIN_PATH)
 	qemu-system-x86_64 -cdrom kernel.iso -debugcon stdio -smp 4 -m 1G \
 		-drive if=pflash,unit=0,format=raw,file=ovmf/ovmf-code.fd,readonly=on \
 		-drive if=pflash,unit=1,format=raw,file=ovmf/ovmf-vars.fd $(QEMU_ARGS) || true
+# 	hack for now since we can't differenciate between testing and running. we should probably create kernel_test.iso or something.
+	rm kernel.iso
 
 .PHONY: clean
 clean: 

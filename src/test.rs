@@ -117,19 +117,17 @@ fn panic(inf: &PanicInfo) -> ! {
     loop {}
 }
 
-#[naked]
+#[unsafe(naked)]
 #[unsafe(no_mangle)]
 unsafe extern "C" fn kmain() -> ! {
-    unsafe {
-        use core::arch::naked_asm;
+    use core::arch::naked_asm;
 
-        naked_asm!(
-            // initialize stack frame
-            "xor rbp, rbp;
-            call {};",
-            sym kmain_rs
-        )
-    }
+    naked_asm!(
+        // initialize stack frame
+        "xor rbp, rbp;
+        call {};",
+        sym kmain_rs
+    )
 }
 
 #[unsafe(no_mangle)]

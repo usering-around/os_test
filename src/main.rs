@@ -1,7 +1,6 @@
 #![no_std]
 #![no_main]
 #![feature(ascii_char)]
-#![feature(naked_functions)]
 
 use core::arch::naked_asm;
 use core::mem::MaybeUninit;
@@ -13,17 +12,15 @@ use os_test::{
     kernel_virt_begin, memory,
 };
 
-#[naked]
+#[unsafe(naked)]
 #[unsafe(no_mangle)]
 unsafe extern "C" fn kmain() -> ! {
-    unsafe {
-        naked_asm!(
-            // initialize stack frame
-            "xor rbp, rbp;
-            call {};",
-            sym kmain_rs
-        )
-    }
+    naked_asm!(
+        // initialize stack frame
+        "xor rbp, rbp;
+        call {};",
+        sym kmain_rs
+    )
 }
 
 #[unsafe(no_mangle)]
@@ -53,12 +50,13 @@ unsafe extern "C" fn kmain_rs() -> ! {
     console_println!("memory has been loaded!");
 
     console_println!(
-        "phy_addr: {:x}, virt_addr: {:x}",
+        "kernel phy_addr: {:x}, kernel virt_addr: {:x}",
         kernel_phy_begin(),
         kernel_virt_begin()
     );
 
     os_test::cpu::init();
+
     unsafe {
         loop {
             hlt();

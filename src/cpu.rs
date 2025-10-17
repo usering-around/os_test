@@ -65,8 +65,9 @@ pub fn init() {
     });
     console_println!("loaded shared idt!");
     IoApic::init();
-    hpet_init();
-    console_println!("ver: {}", LocalApic::version());
+    //hpet_init();
+    console_println!("lapic ver: {}", LocalApic::version());
+    console_println!("apic ver: {}", LocalApic::id());
     console_println!("hpet tick rate: {:?}", Hpet::tick_rate_ns());
     console_println!("io apic version: {:?}", IoApic::version());
     console_println!(
@@ -88,18 +89,16 @@ pub fn init() {
     }
 }
 
-#[naked]
+#[unsafe(naked)]
 #[unsafe(no_mangle)]
 unsafe extern "C" fn cpu_main(cpu: &Cpu) -> ! {
-    unsafe {
-        core::arch::naked_asm!(
-            // initialize stack frame and pass the cpu as an arguement
-            // (implicitly since we didn't touch the RDI register)
-            "xor rbp, rbp;
-            call {};",
-            sym cpu_main_rs
-        )
-    }
+    core::arch::naked_asm!(
+        // initialize stack frame and pass the cpu as an arguement
+        // (implicitly since we didn't touch the RDI register)
+        "xor rbp, rbp;
+        call {};",
+        sym cpu_main_rs
+    )
 }
 #[unsafe(no_mangle)]
 unsafe extern "C" fn cpu_main_rs(cpu: &Cpu) -> ! {

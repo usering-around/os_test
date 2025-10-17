@@ -2,9 +2,7 @@
 #![no_main]
 #![feature(ptr_as_ref_unchecked)]
 #![feature(ascii_char)]
-#![feature(naked_functions)]
 #![feature(custom_test_frameworks)]
-#![feature(let_chains)]
 #![test_runner(crate::test::test_runner)]
 #![reexport_test_harness_main = "lib_test"]
 use core::{cell::LazyCell, fmt::Write, mem::MaybeUninit};
