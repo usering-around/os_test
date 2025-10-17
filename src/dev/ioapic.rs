@@ -61,9 +61,6 @@ impl IoApic {
     }
 
     pub fn maximum_redirections() -> u32 {
-        unsafe {
-            crate::qemu_println!("max redirect: 0x{:x}", Self::read_u32(Self::IOAPICVER_REG));
-        }
         unsafe { (Self::read_u32(Self::IOAPICVER_REG) >> 16) & 0xff }
     }
 
@@ -75,7 +72,7 @@ impl IoApic {
     /// Note that irqs 0-15 are for legacy irqs. Use 16-23 for arbitrary interrupts.
     pub fn redirect_irq(irq_num: u8, entry: IoApicRedirectEntry) {
         unsafe {
-            let reg_num = irq_num + 0x10;
+            let reg_num = irq_num * 2 + 0x10;
             let low = (entry.as_raw().0 & 0xffff_ffff) as u32;
 
             let high = (entry.as_raw().0 >> 32) as u32;
@@ -142,7 +139,8 @@ impl IoApicRedirectEntry {
             | ((self.destination_mode as u64) << 11)
             | ((self.interrupt_polarity as u64) << 13)
             | ((self.trigger_mode as u64) << 15)
-            | (if self.mask { 1 } else { 0 } << 16);
+            | (if self.mask { 1 } else { 0 } << 16)
+            | ((self.destination_mode as u64) << 56);
         IoApicRedirectEntryRaw(num)
     }
 }
