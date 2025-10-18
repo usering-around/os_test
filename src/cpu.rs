@@ -1,5 +1,8 @@
+use core::{mem::MaybeUninit, u32};
+
 use limine::mp::Cpu;
 
+use crate::LIMINE_CPU_REQUEST;
 use crate::{
     arch_x86_64::hlt,
     console_println,
@@ -13,8 +16,26 @@ use crate::{
     interrupts::SHARED_IDT,
 };
 
-#[cfg(feature = "smp")]
-use crate::LIMINE_CPU_REQUEST;
+#[derive(Debug)]
+pub struct PerCpu {
+    pub lapic_ticks_per_ms: u32,
+}
+
+/// Safety: call this after PerCpu has been initialized
+pub unsafe fn percpu() -> &'static PerCpu {
+    // safety: this value is only accessible via this function after it has been initialized,
+    // and it's only accessed in an Immutable manner.
+    let maybe_uninit = unsafe { &PERCPUS[LocalApic::id() as usize] };
+    // we shouldn't call this without first initializing the struct
+    // we should probably just check if it has been initializede
+    unsafe { maybe_uninit.assume_init_ref() }
+}
+
+// probably enough for now
+pub const MAX_CPU_COUNT: usize = 32;
+
+static mut PERCPUS: [MaybeUninit<PerCpu>; MAX_CPU_COUNT] =
+    [const { MaybeUninit::uninit() }; MAX_CPU_COUNT];
 
 fn hpet_init() {
     // safety: we are the sole owner of the timer
@@ -104,13 +125,14 @@ pub fn init() {
     );
     console_println!("io apic id: {:?}", IoApic::id());
 
+    let cpu_response = LIMINE_CPU_REQUEST.get_response().unwrap();
     #[cfg(feature = "smp")]
     {
-        let cpu_response = LIMINE_CPU_REQUEST.get_response().unwrap();
         for cpu in cpu_response.cpus() {
             cpu.goto_address.write(cpu_main);
         }
     }
+    unsafe { cpu_main_rs(cpu_response.cpus()[cpu_response.bsp_lapic_id() as usize]) }
 }
 
 #[unsafe(naked)]
@@ -127,7 +149,7 @@ unsafe extern "C" fn cpu_main(cpu: &Cpu) -> ! {
 #[unsafe(no_mangle)]
 unsafe extern "C" fn cpu_main_rs(cpu: &Cpu) -> ! {
     console_println!(
-        "cpu {} arrived! lapic id: {}, lapic version: {:x}",
+        "cpu {} online! lapic id: {}, lapic version: {:x}",
         cpu.id,
         LocalApic::id(),
         LocalApic::version(),
@@ -139,6 +161,15 @@ unsafe extern "C" fn cpu_main_rs(cpu: &Cpu) -> ! {
             });
         }
     }
+    let lapic_ticks_per_ms = local_apic_init();
+    // safety: LocalApic::id() should be different between each CPU,
+    // hence this changes different elements of PERCPUS
+    unsafe {
+        PERCPUS[LocalApic::id() as usize].write(PerCpu { lapic_ticks_per_ms });
+    }
+    console_println!("CPU {} init done; data: {:?}", LocalApic::id(), unsafe {
+        percpu()
+    },);
     unsafe {
         loop {
             hlt();

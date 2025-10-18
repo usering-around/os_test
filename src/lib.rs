@@ -8,7 +8,6 @@
 use core::{cell::LazyCell, fmt::Write, mem::MaybeUninit};
 
 use console::{Console, ThreadSafeConsole};
-#[cfg(feature = "smp")]
 use limine::request::MpRequest;
 use limine::{
     BaseRevision,
@@ -85,7 +84,6 @@ pub static HIGHER_HALF_DIRECT_MAP: HhdmRequest = HhdmRequest::new();
 #[unsafe(link_section = ".requests")]
 pub static LIMINE_MEMORY_MAP: MemoryMapRequest = MemoryMapRequest::new();
 
-#[cfg(feature = "smp")]
 #[used]
 #[unsafe(link_section = ".requests")]
 pub static LIMINE_CPU_REQUEST: MpRequest = MpRequest::new();
