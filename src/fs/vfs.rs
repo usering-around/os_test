@@ -98,7 +98,7 @@ impl Vfs {
 impl FileSystem for Vfs {
     type File = Box<dyn File>;
 
-    fn file_type(&self, path: &Path) -> Result<FileType> {
+    fn file_type(&self, _path: &Path) -> Result<FileType> {
         todo!()
     }
     fn open_file(&self, path: &Path) -> Result<Self::File> {
@@ -108,19 +108,19 @@ impl FileSystem for Vfs {
         self.root.open_file(path).or(self.open_file_in_mounts(path))
     }
 
-    fn create_file(&self, path: &Path) -> Result<Self::File> {
+    fn create_file(&self, _path: &Path) -> Result<Self::File> {
         todo!()
     }
 
-    fn create_dir(&self, path: &Path) -> Result<()> {
+    fn create_dir(&self, _path: &Path) -> Result<()> {
         todo!()
     }
 
-    fn delete(&self, path: &Path) -> Result<()> {
+    fn delete(&self, _path: &Path) -> Result<()> {
         todo!()
     }
 
-    fn open_dir(&self, path: &Path) -> Result<Box<dyn Iterator<Item = DirEntry>>> {
+    fn open_dir(&self, _path: &Path) -> Result<Box<dyn Iterator<Item = DirEntry>>> {
         todo!()
     }
 }
