@@ -39,12 +39,42 @@ impl LocalApic {
         Self::read(0x20) >> 24
     }
 
+    pub fn eoi() {
+        Self::write(0xB0, 0);
+    }
+    pub fn set_spurious_interrupt_irq(irq: u8) {
+        let reg = 0xF0;
+        let old = Self::read(reg);
+        Self::write(reg, (old & 0xffff_ff00) | irq as u32);
+    }
+
+    pub fn enable() {
+        let reg = 0xF0;
+        let old = Self::read(reg);
+        Self::write(reg, old | 0x100);
+    }
+
+    pub fn disable() {
+        let reg = 0xF0;
+        let old = Self::read(reg);
+        Self::write(reg, old & !0x100);
+    }
+
     pub fn set_timer_init_count(count: u32) {
-        Self::write(0x390, count);
+        Self::write(0x380, count);
     }
 
     pub fn set_lvt_timer_irq(irq: u32) {
         Self::write(0x320, irq);
+    }
+
+    pub fn mask_timer() {
+        let old = Self::read(0x320);
+        Self::write(0x320, old | (1 << 16));
+    }
+    pub fn unmask_timer() {
+        let old = Self::read(0x320);
+        Self::write(0x320, old & !(1 << 16));
     }
 
     pub fn set_timer_div(div: u32) {
