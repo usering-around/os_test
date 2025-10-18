@@ -42,6 +42,7 @@ pub mod screen;
 pub mod stack_trace;
 #[cfg(test)]
 mod test;
+pub mod time;
 pub extern crate alloc;
 pub mod acpi;
 
