@@ -88,9 +88,4 @@ impl LocalApic {
     pub fn set_lvt_error_irq(irq: u32) {
         Self::write(0x370, irq);
     }
-
-    pub fn init() {
-        Self::set_lvt_error_irq(42);
-        Self::set_lvt_timer_irq(32);
-    }
 }
