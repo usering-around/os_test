@@ -10,53 +10,81 @@ use crate::{
     },
     idt::{IdtEntry, IdtEntryType},
     interrupt_handler_fn,
-    interrupts::{SHARED_IDT, irq_enable},
+    interrupts::SHARED_IDT,
 };
 
 #[cfg(feature = "smp")]
 use crate::LIMINE_CPU_REQUEST;
 
-// testing; needs to be removed once testing is done
 fn hpet_init() {
-    if let Some(irq) = (0..=24).find(|irq| unsafe { Hpet::timer(0).can_route_irq_to(*irq) }) {
-        let irq_redirection = IoApicRedirectEntry {
-            dest: LocalApic::id() as u8,
-            mask: false,
-            trigger_mode: unsafe { Hpet::timer(0).trigger_mode() },
-            interrupt_polarity: InterruptPolarity::HighActive,
-            destination_mode: DestinationMode::Physical,
-            delivery_mode: DeilveryMode::Fixed,
-            redirected_irq_num: 32,
-        };
-        unsafe {
-            Hpet::timer(0).route_irq_to(irq).unwrap();
-            let ticks = Hpet::tick_rate_ns() * 10_u64.pow(9);
-            Hpet::timer(0).set_counter_raw(ticks as u64);
-            Hpet::timer(0).enable();
-        }
-        IoApic::redirect_irq(irq as u8, irq_redirection);
-        let ticks = Hpet::tick_rate_ns() * 10_u64.pow(9);
-        Hpet::set_main_counter_raw(ticks as u64);
-        Hpet::enable();
-        SHARED_IDT.guard(|idt| {
-            idt.lock().as_mut().insert(
-                32,
-                IdtEntry::new_with_current_cs(IdtEntryType::Interrupt(interrupt_handler_fn!(
-                    || {
-                        panic!("got 32 interrupt!");
-                    }
-                ))),
-            );
-        });
+    // safety: we are the sole owner of the timer
+    let timer = unsafe { Hpet::timer(0) };
+    timer.enable();
+    let irq_redirection = IoApicRedirectEntry {
+        dest: LocalApic::id() as u8,
+        mask: false,
+        trigger_mode: timer.trigger_mode(),
+        interrupt_polarity: InterruptPolarity::HighActive,
+        destination_mode: DestinationMode::Physical,
+        delivery_mode: DeilveryMode::Fixed,
+        redirected_irq_num: 32,
+    };
 
-        console_println!("hpet initialized! irq: {}", irq);
-        console_println!(
-            "is using legacy mapping: {}",
-            Hpet::is_using_legacy_mapping()
+    // currently we can't mask PIT ourselves currently, so we use the legacy mapping to stop it from throwing interrupts
+    // in the future we should probably just route the IRQ ourselves and explicitly mask the PIT
+    Hpet::enable_legacy_mapping();
+    IoApic::redirect_irq(2 as u8, irq_redirection);
+    Hpet::enable();
+    SHARED_IDT.guard(|idt| {
+        idt.lock().as_mut().insert(
+            32,
+            IdtEntry::new_with_current_cs(IdtEntryType::Interrupt(interrupt_handler_fn!(|| {
+                LocalApic::eoi();
+            }))),
         );
-    } else {
-        panic!("cannot initialize hpet");
-    }
+    });
+
+    console_println!("hpet initialized! irq: {}", 2);
+}
+
+fn local_apic_init() -> u32 {
+    // should probably create an array/table of all IRQs instead of this
+    LocalApic::set_spurious_interrupt_irq(33);
+    LocalApic::set_lvt_timer_irq(34);
+    LocalApic::set_lvt_error_irq(35);
+
+    SHARED_IDT.guard(|idt| {
+        let mut idt = idt.lock();
+        idt.as_mut().insert(
+            33,
+            IdtEntry::new_with_current_cs(IdtEntryType::Interrupt(interrupt_handler_fn!(|| {
+                panic!("spurious interrupt 33");
+            }))),
+        );
+        idt.as_mut().insert(
+            34,
+            IdtEntry::new_with_current_cs(IdtEntryType::Interrupt(interrupt_handler_fn!(|| {
+                panic!("lapic timer");
+            }))),
+        );
+        idt.as_mut().insert(
+            35,
+            IdtEntry::new_with_current_cs(IdtEntryType::Interrupt(interrupt_handler_fn!(|| {
+                panic!("LAPIC error");
+            }))),
+        );
+    });
+
+    // best resolution
+    LocalApic::set_timer_div(1);
+    // calibrate
+    let init_ticks = u32::MAX;
+    LocalApic::set_timer_init_count(init_ticks);
+    crate::time::poll_sleep(core::time::Duration::from_millis(1));
+    // we woke up after 1 ms,
+    let ticks_per_ms = u32::MAX - LocalApic::current_count();
+    LocalApic::set_timer_init_count(0);
+    ticks_per_ms
 }
 
 pub fn init() {
@@ -65,20 +93,16 @@ pub fn init() {
     });
     console_println!("loaded shared idt!");
     IoApic::init();
-    //hpet_init();
+    hpet_init();
     console_println!("lapic ver: {}", LocalApic::version());
     console_println!("apic ver: {}", LocalApic::id());
-    console_println!("hpet tick rate: {:?}", Hpet::tick_rate_ns());
+    console_println!("hpet tick rate: {:?}", Hpet::tick_rate_ms());
     console_println!("io apic version: {:?}", IoApic::version());
     console_println!(
         "io apic maximum redirection: {:?}",
         IoApic::maximum_redirections()
     );
     console_println!("io apic id: {:?}", IoApic::id());
-
-    unsafe {
-        irq_enable();
-    }
 
     #[cfg(feature = "smp")]
     {
